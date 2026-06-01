@@ -204,6 +204,7 @@
           <li>Sodio 4–5 g · Magnesio 300–400 mg · Potassio dalle verdure.</li>
           <li>Creatina 3–5 g al pasto. Bolero ≠ elettroliti.</li>
         </ul>
+        <p class="small" id="deficit-note" style="margin:8px 0 0"></p>
       </div>
     </div>
     <div style="margin-top:18px">
@@ -264,7 +265,7 @@ function defaultState(){
   const today = todayISO();
   return {
     config:{ startWeight:97, startDate:today, targetWeight:84,
-             targetDate:addMonthsISO(today,3), heightCm:0 },
+             targetDate:addMonthsISO(today,3), heightCm:174, birthdate:"1989-05-25" },
     entries:[ {date:today, weight:97} ]
   };
 }
@@ -381,6 +382,12 @@ function recentRate(){ // kg per week over last ~21 days
 }
 
 function bmi(w){ const h=state.config.heightCm/100; return h>0 ? w/(h*h) : null; }
+function age(){ const b=state.config.birthdate; if(!/^\d{4}-\d{2}-\d{2}$/.test(b||"")) return null;
+  const d=parseD(b), n=new Date(); let a=n.getFullYear()-d.getFullYear();
+  if(n.getMonth()<d.getMonth()||(n.getMonth()===d.getMonth()&&n.getDate()<d.getDate())) a--; return a; }
+// BMR Mifflin-St Jeor (uomo) + mantenimento sedentario/leggero
+function bmr(w){ const h=state.config.heightCm, a=age(); if(!(h>0)||a==null) return null; return 10*w+6.25*h-5*a+5; }
+function maintenance(w){ const b=bmr(w); return b!=null? b*1.3 : null; }
 
 // ---------- render ----------
 function render(){
@@ -418,6 +425,8 @@ function renderKPIs(){
     {l:"Arrivo stimato", v:"<span style='font-size:16px'>"+eta+"</span>"},
   ];
   if(b!=null) k.push({l:"BMI", v:fmtNum(b)+" <small>"+bmiCat(b)+"</small>"});
+  const m=maintenance(cur);
+  if(m!=null) k.push({l:"Mantenimento", v:Math.round(m)+" <small>kcal</small>"});
   document.getElementById("kpis").innerHTML =
     k.map(x=>`<div class="kpi"><div class="v">${x.v}</div><div class="l">${x.l}</div></div>`).join("");
 }
@@ -658,6 +667,15 @@ function renderEnergyChart(){
 
 function renderDiet(){
   const a=DIET.avg;
+  const w=withWeight();
+  const cur=w.length?w[w.length-1].weight:state.config.startWeight;
+  const m=maintenance(cur), ag=age();
+  const note=document.getElementById("deficit-note");
+  if(m!=null){
+    const deficit=m-DIET.avg.kcal;
+    const kgWeek=deficit*7/7700;
+    note.innerHTML=`Con ${ag} anni, ${state.config.heightCm} cm, ${fmtNum(cur)} kg → mantenimento stimato <b style="color:var(--ink)">~${Math.round(m)} kcal</b>. Intake ~${DIET.avg.kcal} kcal = deficit <b style="color:var(--ink)">~${Math.round(deficit)} kcal/giorno</b> (≈ ${fmtNum(kgWeek)} kg/sett teorici). <span style="opacity:.7">Stima sedentaria; il dato reale è il ritmo misurato sopra.</span>`;
+  } else { note.innerHTML=""; }
   const kP=a.P*4, kC=a.C*4, kF=a.F*9;
   donut("chart-macro",[
     {label:"Proteine",value:kP,color:"#36c9b8"},
@@ -728,11 +746,13 @@ document.getElementById("btn-config").onclick=()=>{
   const sw=prompt("Peso iniziale (kg):",c.startWeight); if(sw===null)return;
   const tw=prompt("Peso obiettivo (kg):",c.targetWeight); if(tw===null)return;
   const td=prompt("Data obiettivo (AAAA-MM-GG):",c.targetDate); if(td===null)return;
-  const h=prompt("Altezza in cm (per il BMI, 0 per saltare):",c.heightCm); if(h===null)return;
+  const h=prompt("Altezza in cm (per BMI/metabolismo, 0 per saltare):",c.heightCm||174); if(h===null)return;
+  const bd=prompt("Data di nascita (AAAA-MM-GG, vuoto per saltare):",c.birthdate||""); if(bd===null)return;
   c.startWeight=parseFloat((""+sw).replace(",","."))||c.startWeight;
   c.targetWeight=parseFloat((""+tw).replace(",","."))||c.targetWeight;
   if(/^\d{4}-\d{2}-\d{2}$/.test(td)) c.targetDate=td;
   c.heightCm=parseFloat((""+h).replace(",","."))||0;
+  c.birthdate=/^\d{4}-\d{2}-\d{2}$/.test(bd)?bd:"";
   save(); render();
 };
 
