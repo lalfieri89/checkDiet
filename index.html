@@ -744,11 +744,13 @@ document.getElementById("save").onclick=()=>{
 document.getElementById("btn-config").onclick=()=>{
   const c=state.config;
   const sw=prompt("Peso iniziale (kg):",c.startWeight); if(sw===null)return;
+  const sd=prompt("Data di inizio (AAAA-MM-GG):",c.startDate); if(sd===null)return;
   const tw=prompt("Peso obiettivo (kg):",c.targetWeight); if(tw===null)return;
   const td=prompt("Data obiettivo (AAAA-MM-GG):",c.targetDate); if(td===null)return;
   const h=prompt("Altezza in cm (per BMI/metabolismo, 0 per saltare):",c.heightCm||174); if(h===null)return;
   const bd=prompt("Data di nascita (AAAA-MM-GG, vuoto per saltare):",c.birthdate||""); if(bd===null)return;
   c.startWeight=parseFloat((""+sw).replace(",","."))||c.startWeight;
+  if(/^\d{4}-\d{2}-\d{2}$/.test(sd)) c.startDate=sd;
   c.targetWeight=parseFloat((""+tw).replace(",","."))||c.targetWeight;
   if(/^\d{4}-\d{2}-\d{2}$/.test(td)) c.targetDate=td;
   c.heightCm=parseFloat((""+h).replace(",","."))||0;
