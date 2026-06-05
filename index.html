@@ -78,6 +78,19 @@
   .sync-badge.ok{color:#9fe3b1;border-color:var(--good);background:rgba(57,179,90,.1)}
   .sync-badge.busy{color:#aad2ef;border-color:var(--blue);background:rgba(58,143,208,.1)}
   .sync-badge.off{color:#f0d196;border-color:var(--warn);background:rgba(224,163,46,.1)}
+  .tabbar{position:sticky;top:0;z-index:5;display:flex;gap:6px;padding:10px 0;
+    margin-bottom:6px;background:var(--bg)}
+  .tab{flex:1;background:var(--card);border:1px solid var(--line);color:var(--muted);
+    font-weight:600;padding:10px 6px;border-radius:10px}
+  .tab.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .shop-cat{background:var(--card2);border:1px solid var(--line);border-radius:10px;
+    padding:10px 12px;margin-bottom:10px}
+  .shop-cat h3{margin:0 0 6px;font-size:13px;color:var(--accent2);text-transform:uppercase;letter-spacing:.03em}
+  .shop-cat table{width:100%}
+  .shop-cat td{padding:5px 4px;border-bottom:1px solid var(--line);font-size:13.5px}
+  .shop-cat td:nth-child(2){text-align:right;font-weight:600;white-space:nowrap}
+  .shop-cat td:nth-child(3){color:var(--muted);font-size:12px;width:40%}
+  .shop-cat tr:last-child td{border-bottom:none}
   @media(max-width:560px){.diet-grid{grid-template-columns:1fr}.kpi .v{font-size:19px}}
 </style>
 </head>
@@ -86,6 +99,13 @@
   <h1>🥑 Dieta Tracker</h1>
   <p class="sub">Keto + digiuno 23h · 1 pasto/giorno · obiettivo −10/15 kg in ~3 mesi</p>
 
+  <div class="tabbar">
+    <button class="tab on" data-tab="andamento">📈 Andamento</button>
+    <button class="tab" data-tab="dieta">🍽️ Dieta</button>
+    <button class="tab" data-tab="spesa">🛒 Spesa</button>
+  </div>
+
+  <section id="tab-andamento">
   <!-- INSERIMENTO -->
   <div class="card">
     <h2>Nuovo aggiornamento</h2>
@@ -184,6 +204,17 @@
     <div id="chart-energy"></div>
   </div>
 
+  <!-- HISTORY -->
+  <div class="card">
+    <h2>Storico misurazioni</h2>
+    <table>
+      <thead><tr><th>Data</th><th class="num">Peso</th><th class="num">Vita</th><th class="num">Energia</th><th></th></tr></thead>
+      <tbody id="history"></tbody>
+    </table>
+  </div>
+  </section>
+
+  <section id="tab-dieta" style="display:none">
   <!-- DIET SECTION -->
   <div class="card">
     <h2>La tua dieta</h2>
@@ -196,11 +227,11 @@
       <div>
         <p class="small" style="margin-top:0">
           <b style="color:var(--ink)">Keto + digiuno 23h</b>, un solo pasto.<br>
-          Media ~<b style="color:var(--ink)">1.375 kcal</b> · Proteine <b style="color:var(--ink)">120–150 g</b> · Carbo <b style="color:var(--ink)">&lt;25 g</b> · Grassi il resto.
+          Media ~<b style="color:var(--ink)">1.395 kcal</b> · Proteine <b style="color:var(--ink)">~128 g</b> · Carbo <b style="color:var(--ink)">&lt;25 g</b> · Grassi il resto.
         </p>
         <ul class="rules small" style="padding-left:18px;margin:8px 0">
           <li>Prima le proteine, poi verdure, grassi per ultimi.</li>
-          <li>350–400 g carne/pesce + 2ª fonte proteica.</li>
+          <li>Proteina principale (carne/pesce/tofu) + uova/formaggi + 2 scoop di proteine ISO (whey).</li>
           <li>Sodio 4–5 g · Magnesio 300–400 mg · Potassio dalle verdure.</li>
           <li>Creatina 3–5 g al pasto. Bolero ≠ elettroliti.</li>
         </ul>
@@ -223,15 +254,16 @@
       </table>
     </details>
   </div>
+  </section>
 
-  <!-- HISTORY -->
+  <section id="tab-spesa" style="display:none">
+  <!-- SHOPPING SECTION -->
   <div class="card">
-    <h2>Storico misurazioni</h2>
-    <table>
-      <thead><tr><th>Data</th><th class="num">Peso</th><th class="num">Vita</th><th class="num">Energia</th><th></th></tr></thead>
-      <tbody id="history"></tbody>
-    </table>
+    <h2>Lista della spesa — 1 settimana</h2>
+    <p class="small" style="margin-top:-4px">Quantità totali sommate dai 7 pasti. Aggiungi un margine per gli sprechi.</p>
+    <div id="shopping"></div>
   </div>
+  </section>
 </div>
 
 <script>
@@ -240,24 +272,48 @@ const LS_KEY = "dietaTracker.v1";
 const DAY = 86400000;
 
 const DIET = {
-  avg:{P:125,C:10,F:92,kcal:1396},
+  avg:{P:128,C:13,F:89,kcal:1395},
   meals:[
-    {nome:"Manzo & uova",        P:140,C:4, F:105,kcal:1551,
-      ing:["Controfiletto di manzo 480 g","Uova intere 150 g (3)","Parmigiano 40 g","Spinaci 200 g","Olio EVO 20 g"]},
-    {nome:"Pollo & mozzarella",  P:146,C:8, F:80, kcal:1377,
-      ing:["Petto di pollo 520 g","Mozzarella 125 g","Avocado 100 g","Insalata mista 150 g","Olio EVO 35 g"]},
-    {nome:"Salmone & avocado",   P:111,C:7, F:106,kcal:1479,
-      ing:["Salmone 400 g","Uova intere 100 g (2)","Parmigiano 30 g","Broccoli 200 g","Avocado 100 g","Olio EVO 20 g"]},
-    {nome:"Tonno & uova",        P:114,C:9, F:85, kcal:1277,
-      ing:["Tonno al naturale sgocciolato 280 g","Uova intere 150 g (3)","Mozzarella 100 g","Avocado 100 g","Olive 30 g","Insalata mista 150 g","Olio EVO 30 g"]},
-    {nome:"Pesce misto",         P:126,C:7, F:82, kcal:1292,
-      ing:["Branzino 350 g","Gamberi 280 g","Zucchine 200 g","Avocado 120 g","Olive 40 g","Olio EVO 45 g"]},
-    {nome:"Tofu strapazzato & funghi", P:120,C:15,F:104,kcal:1486,
-      ing:["Tofu sodo 500 g","Uova intere 200 g (4)","Parmigiano 60 g","Funghi 150 g","Spinaci 150 g","Olio EVO 25 g"]},
-    {nome:"Seitan ai funghi",    P:116,C:20,F:81, kcal:1307,
-      ing:["Seitan 320 g","Tofu sodo 150 g","Parmigiano 30 g","Funghi 150 g","Avocado 100 g","Olive 30 g","Olio EVO 35 g"]},
+    {nome:"Manzo & uova",        P:135,C:10,F:93, kcal:1450,
+      ing:[{n:"Controfiletto di manzo",g:280},{n:"Uova intere",g:100,nota:"2"},{n:"Parmigiano",g:30},{n:"Spinaci",g:200},{n:"Avocado",g:80},{n:"Olio EVO",g:25},{n:"Proteine ISO (whey)",g:60,nota:"2 scoop"}]},
+    {nome:"Pollo & mozzarella",  P:137,C:12,F:85, kcal:1388,
+      ing:[{n:"Petto di pollo",g:300},{n:"Mozzarella",g:100},{n:"Avocado",g:100},{n:"Insalata mista",g:150},{n:"Olio EVO",g:45},{n:"Proteine ISO (whey)",g:60,nota:"2 scoop"}]},
+    {nome:"Salmone & avocado",   P:117,C:12,F:91, kcal:1383,
+      ing:[{n:"Salmone",g:250},{n:"Uova intere",g:100,nota:"2"},{n:"Broccoli",g:200},{n:"Avocado",g:100},{n:"Olio EVO",g:30},{n:"Proteine ISO (whey)",g:60,nota:"2 scoop"}]},
+    {nome:"Tonno & uova",        P:122,C:13,F:91, kcal:1381,
+      ing:[{n:"Tonno al naturale sgocciolato",g:170},{n:"Uova intere",g:100,nota:"2"},{n:"Mozzarella",g:80},{n:"Avocado",g:100},{n:"Olive",g:40},{n:"Insalata mista",g:150},{n:"Olio EVO",g:42},{n:"Proteine ISO (whey)",g:60,nota:"2 scoop"}]},
+    {nome:"Pesce misto",         P:128,C:12,F:90, kcal:1393,
+      ing:[{n:"Branzino",g:220},{n:"Gamberi",g:180},{n:"Zucchine",g:200},{n:"Avocado",g:120},{n:"Olive",g:40},{n:"Olio EVO",g:55},{n:"Proteine ISO (whey)",g:60,nota:"2 scoop"}]},
+    {nome:"Tofu strapazzato & funghi", P:129,C:16,F:86,kcal:1373,
+      ing:[{n:"Tofu sodo",g:320},{n:"Uova intere",g:150,nota:"3"},{n:"Parmigiano",g:40},{n:"Funghi",g:150},{n:"Spinaci",g:150},{n:"Olio EVO",g:30},{n:"Proteine ISO (whey)",g:60,nota:"2 scoop"}]},
+    {nome:"Seitan ai funghi",    P:128,C:19,F:86, kcal:1395,
+      ing:[{n:"Seitan",g:200},{n:"Tofu sodo",g:120},{n:"Parmigiano",g:30},{n:"Funghi",g:150},{n:"Avocado",g:100},{n:"Olive",g:30},{n:"Olio EVO",g:42},{n:"Proteine ISO (whey)",g:60,nota:"2 scoop"}]},
   ]
 };
+
+// categoria per ogni ingrediente (per la lista della spesa)
+const CAT = {
+  "Controfiletto di manzo":"Carne, pesce & proteine veg","Petto di pollo":"Carne, pesce & proteine veg",
+  "Salmone":"Carne, pesce & proteine veg","Tonno al naturale sgocciolato":"Carne, pesce & proteine veg",
+  "Branzino":"Carne, pesce & proteine veg","Gamberi":"Carne, pesce & proteine veg",
+  "Tofu sodo":"Carne, pesce & proteine veg","Seitan":"Carne, pesce & proteine veg",
+  "Uova intere":"Uova & latticini","Mozzarella":"Uova & latticini","Parmigiano":"Uova & latticini",
+  "Funghi":"Verdure & frutta","Spinaci":"Verdure & frutta","Broccoli":"Verdure & frutta",
+  "Zucchine":"Verdure & frutta","Insalata mista":"Verdure & frutta","Avocado":"Verdure & frutta","Olive":"Verdure & frutta",
+  "Olio EVO":"Grassi & varie","Proteine ISO (whey)":"Integratori",
+};
+const CAT_ORDER = ["Carne, pesce & proteine veg","Uova & latticini","Verdure & frutta","Grassi & varie","Integratori"];
+const ING_NOTE = { "Proteine ISO (whey)":"già in dispensa (1,5 kg)" };
+
+// da non dimenticare (non nei pasti)
+const EXTRAS = [
+  ["Sale (anche rosa)","—","4–5 g/giorno di sodio"],
+  ["Magnesio citrato/bisglicinato","—","300–400 mg la sera"],
+  ["Potassio (citrato)","opzionale","se crampi/stanchezza"],
+  ["Creatina monoidrato","—","3–5 g/giorno al pasto"],
+  ["Multivitaminico","—","1 pasto/die copre poco"],
+  ["Omega-3","opzionale","se mangi poco pesce grasso"],
+];
 
 // ---------- state ----------
 let state = load();
@@ -400,8 +456,44 @@ function render(){
   renderWaistChart();
   renderEnergyChart();
   renderDiet();
+  renderShopping();
   renderHistory();
 }
+
+function ingLine(x){ return `${x.n} ${x.g} g${x.nota?` (${x.nota})`:""}`; }
+function fmtQty(g){ return g<1000 ? `${g} g` : `${fmtNum(g/1000,2)} kg`; }
+
+function renderShopping(){
+  // aggrega grammi per ingrediente dai 7 pasti
+  const agg={};
+  DIET.meals.forEach(m=>m.ing.forEach(x=>{ agg[x.n]=(agg[x.n]||0)+x.g; }));
+  let html="";
+  CAT_ORDER.forEach(cat=>{
+    const items=Object.keys(agg).filter(n=>CAT[n]===cat);
+    if(!items.length) return;
+    html+=`<div class="shop-cat"><h3>${cat}</h3><table>`;
+    items.forEach(n=>{
+      const g=agg[n];
+      const qty = n==="Uova intere" ? `~${Math.round(g/50)} uova` : fmtQty(g);
+      const note = ING_NOTE[n]||"";
+      html+=`<tr><td>${n}</td><td>${qty}</td><td>${note}</td></tr>`;
+    });
+    html+="</table></div>";
+  });
+  html+=`<div class="shop-cat"><h3>Da non dimenticare</h3><table>`+
+    EXTRAS.map(e=>`<tr><td>${e[0]}</td><td>${e[1]}</td><td>${e[2]}</td></tr>`).join("")+
+    `</table></div>`;
+  document.getElementById("shopping").innerHTML=html;
+}
+
+function showTab(name){
+  ["andamento","dieta","spesa"].forEach(t=>{
+    document.getElementById("tab-"+t).style.display = t===name ? "" : "none";
+  });
+  document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("on",b.dataset.tab===name));
+  window.scrollTo(0,0);
+}
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
 
 function renderKPIs(){
   const w=withWeight();
@@ -691,7 +783,7 @@ function renderDiet(){
   document.getElementById("meals-recipes").innerHTML=DIET.meals.map((m,i)=>
     `<div class="recipe">
        <div class="recipe-h"><b>${i+1}. ${m.nome}</b><span>${m.kcal} kcal · P ${m.P} · C ${m.C} · F ${m.F}</span></div>
-       <ul>${m.ing.map(x=>`<li>${x}</li>`).join("")}</ul>
+       <ul>${m.ing.map(ingLine).map(s=>`<li>${s}</li>`).join("")}</ul>
      </div>`).join("");
   document.getElementById("meals-table").innerHTML=DIET.meals.map(m=>
     `<tr><td>${m.nome}</td><td class="num">${m.P} g</td><td class="num">${m.C} g</td><td class="num">${m.F} g</td><td class="num">${m.kcal}</td></tr>`).join("")
