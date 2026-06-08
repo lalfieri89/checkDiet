@@ -91,6 +91,13 @@
   .shop-cat td:nth-child(2){text-align:right;font-weight:600;white-space:nowrap}
   .shop-cat td:nth-child(3){color:var(--muted);font-size:12px;width:40%}
   .shop-cat tr:last-child td{border-bottom:none}
+  details.card{padding-top:14px}
+  details.card>summary{font-size:15px;color:var(--accent2);text-transform:uppercase;
+    letter-spacing:.04em;font-weight:700;cursor:pointer;list-style:none;outline:none}
+  details.card>summary::-webkit-details-marker{display:none}
+  details.card>summary::before{content:"▾ ";font-size:12px;color:var(--muted)}
+  details.card:not([open])>summary::before{content:"▸ "}
+  details.card[open]>summary{margin-bottom:12px}
   @media(max-width:560px){.diet-grid{grid-template-columns:1fr}.kpi .v{font-size:19px}}
 </style>
 </head>
@@ -169,70 +176,70 @@
   </div>
 
   <!-- PROGRESS -->
-  <div class="card">
-    <h2>Progresso verso l'obiettivo</h2>
+  <details class="card" open>
+    <summary>Progresso verso l'obiettivo</summary>
     <div class="progress"><div id="progressbar">0%</div></div>
     <div class="small" id="progress-note" style="margin-top:8px"></div>
-  </div>
+  </details>
 
   <!-- WEIGHT CHART -->
-  <div class="card">
-    <h2>Peso nel tempo</h2>
+  <details class="card" open>
+    <summary>Peso nel tempo</summary>
     <div id="chart-weight"></div>
     <div class="legend">
       <span><i class="dot" style="background:var(--accent2)"></i>Peso reale</span>
       <span><i class="dot" style="background:var(--blue)"></i>Obiettivo</span>
       <span><i class="dot" style="background:var(--warn)"></i>Proiezione</span>
     </div>
-  </div>
+  </details>
 
   <!-- RATE CHART -->
-  <div class="card">
-    <h2>Ritmo settimanale</h2>
+  <details class="card" open>
+    <summary>Ritmo settimanale</summary>
     <div id="chart-rate"></div>
     <div class="legend">
       <span><i class="dot" style="background:rgba(57,179,90,.35)"></i>Fascia ideale 0,7–1,3 kg/sett</span>
     </div>
-  </div>
+  </details>
 
   <!-- BMI CHART -->
-  <div class="card" id="card-bmi">
-    <h2>BMI nel tempo</h2>
+  <details class="card" id="card-bmi" open>
+    <summary>BMI nel tempo</summary>
     <div id="chart-bmi"></div>
     <div class="legend">
       <span><i class="dot" style="background:rgba(217,84,77,.3)"></i>Obesità ≥30</span>
       <span><i class="dot" style="background:rgba(224,163,46,.3)"></i>Sovrappeso 25–30</span>
       <span><i class="dot" style="background:rgba(57,179,90,.3)"></i>Normopeso 18,5–25</span>
     </div>
-  </div>
+  </details>
 
   <!-- WAIST CHART -->
-  <div class="card" id="card-waist">
-    <h2>Giro vita nel tempo</h2>
+  <details class="card" id="card-waist" open>
+    <summary>Giro vita nel tempo</summary>
     <div id="chart-waist"></div>
-  </div>
+  </details>
 
   <!-- ENERGY CHART -->
-  <div class="card" id="card-energy">
-    <h2>Energia</h2>
+  <details class="card" id="card-energy" open>
+    <summary>Energia</summary>
     <div id="chart-energy"></div>
-  </div>
+  </details>
 
   <!-- BLOAT CHART -->
-  <div class="card" id="card-bloat">
-    <h2>Gonfiore</h2>
+  <details class="card" id="card-bloat" open>
+    <summary>Gonfiore</summary>
     <div id="chart-bloat"></div>
     <div class="legend"><span>1 = piatto · 5 = molto gonfio</span></div>
-  </div>
+  </details>
 
   <!-- HISTORY -->
-  <div class="card">
-    <h2>Storico misurazioni</h2>
+  <details class="card" open>
+    <summary>Storico misurazioni</summary>
     <table>
       <thead><tr><th>Data</th><th class="num">Peso</th><th class="num">Vita</th><th class="num">En.</th><th class="num">Gonf.</th><th>Note</th><th></th></tr></thead>
       <tbody id="history"></tbody>
     </table>
-  </div>
+  </details>
   </section>
 
   <section id="tab-dieta" style="display:none">
