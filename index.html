@@ -133,6 +133,20 @@
         <button data-e="5">💪 5</button>
       </div>
     </div>
+    <div style="margin-top:10px">
+      <label>Gonfiore (1 = piatto · 5 = molto gonfio)</label>
+      <div class="energy" id="bloat">
+        <button data-b="1">😌 1</button>
+        <button data-b="2">🙂 2</button>
+        <button data-b="3">😐 3</button>
+        <button data-b="4">😣 4</button>
+        <button data-b="5">🎈 5</button>
+      </div>
+    </div>
+    <div style="margin-top:10px">
+      <label>Note (facoltativo)</label>
+      <input type="text" id="in-note" placeholder="es. mal di testa, allenamento, pasto fuori…">
+    </div>
     <div class="btnrow">
       <button id="save">Salva</button>
       <button class="ghost" id="btn-config">⚙︎ Obiettivo / altezza</button>
@@ -204,11 +218,18 @@
     <div id="chart-energy"></div>
   </div>
 
+  <!-- BLOAT CHART -->
+  <div class="card" id="card-bloat">
+    <h2>Gonfiore</h2>
+    <div id="chart-bloat"></div>
+    <div class="legend"><span>1 = piatto · 5 = molto gonfio</span></div>
+  </div>
+
   <!-- HISTORY -->
   <div class="card">
     <h2>Storico misurazioni</h2>
     <table>
-      <thead><tr><th>Data</th><th class="num">Peso</th><th class="num">Vita</th><th class="num">Energia</th><th></th></tr></thead>
+      <thead><tr><th>Data</th><th class="num">Peso</th><th class="num">Vita</th><th class="num">En.</th><th class="num">Gonf.</th><th>Note</th><th></th></tr></thead>
       <tbody id="history"></tbody>
     </table>
   </div>
@@ -218,30 +239,33 @@
   <!-- DIET SECTION -->
   <div class="card">
     <h2>La tua dieta</h2>
-    <div class="diet-grid">
-      <div>
-        <div class="chart-title">Ripartizione media giornaliera (% calorie)</div>
-        <div id="chart-macro"></div>
-        <div class="legend" id="macro-legend"></div>
+    <details>
+      <summary>📊 Panoramica & grafici</summary>
+      <div class="diet-grid" style="margin-top:10px">
+        <div>
+          <div class="chart-title">Ripartizione media giornaliera (% calorie)</div>
+          <div id="chart-macro"></div>
+          <div class="legend" id="macro-legend"></div>
+        </div>
+        <div>
+          <p class="small" style="margin-top:0">
+            <b style="color:var(--ink)">Keto + digiuno 23h</b>, un solo pasto.<br>
+            Media ~<b style="color:var(--ink)">1.395 kcal</b> · Proteine <b style="color:var(--ink)">~128 g</b> · Carbo <b style="color:var(--ink)">&lt;25 g</b> · Grassi il resto.
+          </p>
+          <ul class="rules small" style="padding-left:18px;margin:8px 0">
+            <li>Prima le proteine, poi verdure, grassi per ultimi.</li>
+            <li>Proteina principale (carne/pesce/tofu) + uova/formaggi + 2 scoop di proteine ISO (whey).</li>
+            <li>Sodio 4–5 g · Magnesio 300–400 mg · Potassio dalle verdure.</li>
+            <li>Creatina 3–5 g al pasto. Bolero ≠ elettroliti.</li>
+          </ul>
+          <p class="small" id="deficit-note" style="margin:8px 0 0"></p>
+        </div>
       </div>
-      <div>
-        <p class="small" style="margin-top:0">
-          <b style="color:var(--ink)">Keto + digiuno 23h</b>, un solo pasto.<br>
-          Media ~<b style="color:var(--ink)">1.395 kcal</b> · Proteine <b style="color:var(--ink)">~128 g</b> · Carbo <b style="color:var(--ink)">&lt;25 g</b> · Grassi il resto.
-        </p>
-        <ul class="rules small" style="padding-left:18px;margin:8px 0">
-          <li>Prima le proteine, poi verdure, grassi per ultimi.</li>
-          <li>Proteina principale (carne/pesce/tofu) + uova/formaggi + 2 scoop di proteine ISO (whey).</li>
-          <li>Sodio 4–5 g · Magnesio 300–400 mg · Potassio dalle verdure.</li>
-          <li>Creatina 3–5 g al pasto. Bolero ≠ elettroliti.</li>
-        </ul>
-        <p class="small" id="deficit-note" style="margin:8px 0 0"></p>
+      <div style="margin-top:18px">
+        <div class="chart-title">Calorie per pasto (7 varianti)</div>
+        <div id="chart-meals"></div>
       </div>
-    </div>
-    <div style="margin-top:18px">
-      <div class="chart-title">Calorie per pasto (7 varianti)</div>
-      <div id="chart-meals"></div>
-    </div>
+    </details>
     <details open>
       <summary>📋 I 7 pasti completi (ingredienti)</summary>
       <div id="meals-recipes" style="margin-top:10px"></div>
@@ -455,6 +479,7 @@ function render(){
   renderBMIChart();
   renderWaistChart();
   renderEnergyChart();
+  renderBloatChart();
   renderDiet();
   renderShopping();
   renderHistory();
@@ -757,6 +782,16 @@ function renderEnergyChart(){
     {ymax:5,ydec:0,rotate:w.length>6});
 }
 
+function renderBloatChart(){
+  const w=sorted().filter(e=>e.bloat);
+  if(w.length<1){ document.getElementById("card-bloat").style.display="none"; return; }
+  document.getElementById("card-bloat").style.display="";
+  // gonfiore: 1 piatto (verde) -> 5 gonfio (rosso)
+  const colors={1:"#39b35a",2:"#36c9b8",3:"#3a8fd0",4:"#e0a32e",5:"#d9544d"};
+  barChart("chart-bloat",w.map(e=>({label:fmtDate(e.date),value:e.bloat,color:colors[e.bloat]})),
+    {ymax:5,ydec:0,rotate:w.length>6});
+}
+
 function renderDiet(){
   const a=DIET.avg;
   const w=withWeight();
@@ -793,11 +828,14 @@ function renderDiet(){
 function renderHistory(){
   const rows=sorted().reverse();
   const emo={1:"😵",2:"😕",3:"😐",4:"🙂",5:"💪"};
+  const bemo={1:"😌",2:"🙂",3:"😐",4:"😣",5:"🎈"};
   document.getElementById("history").innerHTML = rows.map(e=>
     `<tr><td>${parseD(e.date).toLocaleDateString("it-IT")}</td>
      <td class="num">${typeof e.weight==="number"?fmtNum(e.weight)+" kg":"—"}</td>
      <td class="num">${typeof e.waist==="number"?fmtNum(e.waist,0)+" cm":"—"}</td>
      <td class="num">${e.energy?emo[e.energy]:"—"}</td>
+     <td class="num">${e.bloat?bemo[e.bloat]:"—"}</td>
+     <td class="small">${e.note?e.note.replace(/</g,"&lt;"):""}</td>
      <td class="num"><button class="del" data-date="${e.date}">✕</button></td></tr>`).join("");
   document.querySelectorAll(".del").forEach(b=>b.onclick=()=>{
     state.entries=state.entries.filter(e=>e.date!==b.dataset.date);
@@ -806,11 +844,16 @@ function renderHistory(){
 }
 
 // ---------- input handling ----------
-let selEnergy=null;
+let selEnergy=null, selBloat=null;
 document.querySelectorAll("#energy button").forEach(b=>b.onclick=()=>{
   const v=+b.dataset.e;
   selEnergy = selEnergy===v ? null : v;
   document.querySelectorAll("#energy button").forEach(x=>x.classList.toggle("on",+x.dataset.e===selEnergy));
+});
+document.querySelectorAll("#bloat button").forEach(b=>b.onclick=()=>{
+  const v=+b.dataset.b;
+  selBloat = selBloat===v ? null : v;
+  document.querySelectorAll("#bloat button").forEach(x=>x.classList.toggle("on",+x.dataset.b===selBloat));
 });
 document.getElementById("in-date").value=todayISO();
 
@@ -820,16 +863,20 @@ document.getElementById("save").onclick=()=>{
   const weight=parseFloat((wEl.value||"").replace(",","."));
   const waistRaw=document.getElementById("in-waist").value.replace(",",".");
   const waist=waistRaw?parseFloat(waistRaw):undefined;
+  const note=document.getElementById("in-note").value.trim();
   if(isNaN(weight)){ wEl.focus(); wEl.style.borderColor="var(--bad)"; return; }
   wEl.style.borderColor="";
   const entry={date,weight};
   if(!isNaN(waist)) entry.waist=waist;
   if(selEnergy) entry.energy=selEnergy;
+  if(selBloat) entry.bloat=selBloat;
+  if(note) entry.note=note;
   state.entries=state.entries.filter(e=>e.date!==date);
   state.entries.push(entry);
   save();
-  wEl.value=""; document.getElementById("in-waist").value="";
+  wEl.value=""; document.getElementById("in-waist").value=""; document.getElementById("in-note").value="";
   selEnergy=null; document.querySelectorAll("#energy button").forEach(x=>x.classList.remove("on"));
+  selBloat=null; document.querySelectorAll("#bloat button").forEach(x=>x.classList.remove("on"));
   render();
 };
 
