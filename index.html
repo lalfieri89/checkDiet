@@ -3,6 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0f1720">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Dieta">
 <title>Dieta Tracker — Keto + Digiuno 23h</title>
 <style>
   :root{
@@ -98,6 +102,10 @@
   details.card>summary::before{content:"▾ ";font-size:12px;color:var(--muted)}
   details.card:not([open])>summary::before{content:"▸ "}
   details.card[open]>summary{margin-bottom:12px}
+  .tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .tbl-scroll table{min-width:480px}
+  td.note{max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    color:var(--muted);font-size:12.5px}
   @media(max-width:560px){.diet-grid{grid-template-columns:1fr}.kpi .v{font-size:19px}}
 </style>
 </head>
@@ -235,10 +243,12 @@
   <!-- HISTORY -->
   <details class="card" open>
     <summary>Storico misurazioni</summary>
+    <div class="tbl-scroll">
     <table>
       <thead><tr><th>Data</th><th class="num">Peso</th><th class="num">Vita</th><th class="num">En.</th><th class="num">Gonf.</th><th>Note</th><th></th></tr></thead>
       <tbody id="history"></tbody>
     </table>
+    </div>
   </details>
   </section>
 
@@ -432,8 +442,9 @@ async function pullNow(){
 }
 
 // ---------- date helpers ----------
-function todayISO(){ const d=new Date(); return d.toISOString().slice(0,10); }
-function addMonthsISO(iso,m){ const d=new Date(iso); d.setMonth(d.getMonth()+m); return d.toISOString().slice(0,10); }
+function toISO(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
+function todayISO(){ return toISO(new Date()); } // data locale, non UTC
+function addMonthsISO(iso,m){ const d=parseD(iso); d.setMonth(d.getMonth()+m); return toISO(d); }
 function parseD(iso){ return new Date(iso+"T00:00:00"); }
 function daysBetween(a,b){ return (parseD(b)-parseD(a))/DAY; }
 function fmtDate(iso){ const d=parseD(iso); return d.toLocaleDateString("it-IT",{day:"2-digit",month:"short"}); }
@@ -577,6 +588,12 @@ function renderAlerts(){
   if(en.length>=2){
     const avg=en.reduce((s,e)=>s+e.energy,0)/en.length;
     if(avg<=2) a.push(["warn","🔋",`Energia bassa negli ultimi giorni. Controlla <b>sodio (4–5 g) e magnesio (300–400 mg)</b>, o il deficit potrebbe essere troppo aggressivo.`]);
+  }
+  // bloat
+  const bl=sorted().filter(e=>e.bloat).slice(-3);
+  if(bl.length>=2){
+    const avg=bl.reduce((s,e)=>s+e.bloat,0)/bl.length;
+    if(avg>=4) a.push(["warn","🎈",`Gonfiore alto negli ultimi giorni. Cause tipiche: <b>dolcificanti/polialcoli</b> (snack "keto", gomme), crucifere abbondanti (broccoli/cavolfiore), latticini, o whey bevuta troppo in fretta. Bevi di più e usa le note per individuare il pattern.`]);
   }
   // on track vs target
   if(rate!=null && rate>0.05){
@@ -832,6 +849,8 @@ function renderDiet(){
     +`<tr style="font-weight:700"><td>Media/giorno</td><td class="num">${DIET.avg.P} g</td><td class="num">${DIET.avg.C} g</td><td class="num">${DIET.avg.F} g</td><td class="num">${DIET.avg.kcal}</td></tr>`;
 }
 
+function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;"); }
+
 function renderHistory(){
   const rows=sorted().reverse();
   const emo={1:"😵",2:"😕",3:"😐",4:"🙂",5:"💪"};
@@ -842,7 +861,7 @@ function renderHistory(){
      <td class="num">${typeof e.waist==="number"?fmtNum(e.waist,0)+" cm":"—"}</td>
      <td class="num">${e.energy?emo[e.energy]:"—"}</td>
      <td class="num">${e.bloat?bemo[e.bloat]:"—"}</td>
-     <td class="small">${e.note?e.note.replace(/</g,"&lt;"):""}</td>
+     <td class="note"${e.note?` title="${esc(e.note)}"`:""}>${e.note?esc(e.note):""}</td>
      <td class="num"><button class="del" data-date="${e.date}">✕</button></td></tr>`).join("");
   document.querySelectorAll(".del").forEach(b=>b.onclick=()=>{
     state.entries=state.entries.filter(e=>e.date!==b.dataset.date);
