@@ -214,15 +214,6 @@
     </div>
   </details>
 
-  <!-- RATE CHART -->
-  <details class="card" open>
-    <summary>Ritmo settimanale</summary>
-    <div id="chart-rate"></div>
-    <div class="legend">
-      <span><i class="dot" style="background:rgba(57,179,90,.35)"></i>Fascia ideale 0,7–1,3 kg/sett</span>
-    </div>
-  </details>
-
   <!-- BMI CHART -->
   <details class="card" id="card-bmi" open>
     <summary>BMI nel tempo</summary>
@@ -238,19 +229,6 @@
   <details class="card" id="card-waist" open>
     <summary>Giro vita nel tempo</summary>
     <div id="chart-waist"></div>
-  </details>
-
-  <!-- ENERGY CHART -->
-  <details class="card" id="card-energy" open>
-    <summary>Energia</summary>
-    <div id="chart-energy"></div>
-  </details>
-
-  <!-- BLOAT CHART -->
-  <details class="card" id="card-bloat" open>
-    <summary>Gonfiore</summary>
-    <div id="chart-bloat"></div>
-    <div class="legend"><span>1 = piatto · 5 = molto gonfio</span></div>
   </details>
 
   <!-- HISTORY -->
@@ -527,11 +505,8 @@ function render(){
   renderAlerts();
   renderProgress();
   renderWeightChart();
-  renderRateChart();
   renderBMIChart();
   renderWaistChart();
-  renderEnergyChart();
-  renderBloatChart();
   renderDiet();
   renderShopping();
   renderHistory();
@@ -827,24 +802,6 @@ function renderWeightChart(){
   lineChart("chart-weight",series,{ydec:1});
 }
 
-function renderRateChart(){
-  // weekly loss bars from consecutive entries grouped by ISO week-ish: use diffs between sorted weights normalized to kg/week
-  const w=withWeight();
-  if(w.length<2){ document.getElementById("chart-rate").innerHTML="<p class='small'>Servono almeno 2 misurazioni.</p>"; return; }
-  const items=[];
-  for(let i=1;i<w.length;i++){
-    const days=daysBetween(w[i-1].date,w[i].date);
-    if(days<=0) continue;
-    const perWeek=(w[i-1].weight-w[i].weight)/days*7;
-    let color="#3a8fd0";
-    if(perWeek>1.5) color="#d9544d";
-    else if(perWeek>=0.7&&perWeek<=1.3) color="#39b35a";
-    else if(perWeek<0.3) color="#e0a32e";
-    items.push({label:fmtDate(w[i].date),value:perWeek,color});
-  }
-  barChart("chart-rate",items,{band:{from:0.7,to:1.3,color:"rgba(57,179,90,.18)"},valueLabels:true,ydec:1,rotate:items.length>6});
-}
-
 function renderBMIChart(){
   if(!(prof().heightCm>0)){ document.getElementById("card-bmi").style.display="none"; return; }
   document.getElementById("card-bmi").style.display="";
@@ -865,25 +822,6 @@ function renderWaistChart(){
   if(w.length<1){ document.getElementById("card-waist").style.display="none"; return; }
   document.getElementById("card-waist").style.display="";
   lineChart("chart-waist",[{color:"#e0a32e",dots:true,points:w.map(e=>({x:parseD(e.date).getTime(),y:e.waist}))}],{ydec:0});
-}
-
-function renderEnergyChart(){
-  const w=sorted().filter(e=>e.energy);
-  if(w.length<1){ document.getElementById("card-energy").style.display="none"; return; }
-  document.getElementById("card-energy").style.display="";
-  const colors={1:"#d9544d",2:"#e0a32e",3:"#3a8fd0",4:"#36c9b8",5:"#39b35a"};
-  barChart("chart-energy",w.map(e=>({label:fmtDate(e.date),value:e.energy,color:colors[e.energy]})),
-    {ymax:5,ydec:0,rotate:w.length>6});
-}
-
-function renderBloatChart(){
-  const w=sorted().filter(e=>e.bloat);
-  if(w.length<1){ document.getElementById("card-bloat").style.display="none"; return; }
-  document.getElementById("card-bloat").style.display="";
-  // gonfiore: 1 piatto (verde) -> 5 gonfio (rosso)
-  const colors={1:"#39b35a",2:"#36c9b8",3:"#3a8fd0",4:"#e0a32e",5:"#d9544d"};
-  barChart("chart-bloat",w.map(e=>({label:fmtDate(e.date),value:e.bloat,color:colors[e.bloat]})),
-    {ymax:5,ydec:0,rotate:w.length>6});
 }
 
 function renderDiet(){
